@@ -6,19 +6,42 @@ use std::env::set_current_dir;
 use std::process::Command;
 use std::str::FromStr;
 use std::time::{SystemTime};
+use reqwest::blocking::get;
+use serde_json::json;
+use dirs;
+use std::fs;
 
 type ParseResult = Result<i32, <i32 as FromStr>::Err>;
 
-struct Result {
-    part1: boolean,
-    part2: boolean
+struct ctx {
+    cookies: String
 }
 
-fn submit(part1: i32, part2: i32) -> Result {
-    return Result {
-        part1: true,
-        part2: true
+fn load_config() -> ctx {
+    let path = dirs::desktop_dir().expect("Could not find desktop folder.");
+
+    println!("{:?}", path);
+
+    let config = fs::read_to_string(format!("{}\\aocrunner.txt", path.into_os_string().into_string().unwrap()))
+        .expect("Could not read the config file. Make sure there is a file called aocrunner.txt on your desktop.");
+
+    return ctx {
+        cookies: "".to_string()
     }
+}
+
+fn submit(answer: &str, part: &str) -> bool {
+
+    let answer_string = answer.to_string();
+
+    let body = json!({
+        "level": "1",
+        "answer": answer_string
+    });
+
+
+
+    return true;
 }
 
 fn run(year: i32, day: i32) {
@@ -84,7 +107,7 @@ fn run(year: i32, day: i32) {
 
     info!("Submitting to advent of code.\n");
 
-    let results: Result = sumbit(1, 2);
+    let part1_result = submit(output[0], "1");
 
     println!("-------------------- Results ---------------");
 
@@ -93,6 +116,8 @@ fn run(year: i32, day: i32) {
 
 fn main() {
     let args: Vec<String> = env::args().collect();
+
+    let ctx = load_config();
 
     // validate the args
     if args.len() != 3 { // the command itself is part of the args array
