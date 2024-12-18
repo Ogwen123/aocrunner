@@ -6,45 +6,62 @@ use std::env::set_current_dir;
 use std::process::Command;
 use std::str::FromStr;
 use std::time::{SystemTime};
-use reqwest::blocking::get;
-use serde_json::json;
+use reqwest;
+use reqwest::header::COOKIE;
 use dirs;
 use std::fs;
 
 type ParseResult = Result<i32, <i32 as FromStr>::Err>;
 
-struct ctx {
+struct Config {
     cookies: String
 }
 
-fn load_config() -> ctx {
-    let path = dirs::desktop_dir().expect("Could not find desktop folder.");
+struct Ctx {
+    cookies: String,
+    year: String,
+    day: String
+}
 
-    println!("{:?}", path);
+fn load_config() -> Config {
+    let path = dirs::desktop_dir().expect("Could not find desktop folder.");
 
     let config = fs::read_to_string(format!("{}\\aocrunner.txt", path.into_os_string().into_string().unwrap()))
         .expect("Could not read the config file. Make sure there is a file called aocrunner.txt on your desktop.");
 
-    return ctx {
-        cookies: "".to_string()
+    let config_vec: Vec<&str> = config.split("\n").collect();
+
+    return Config {
+        cookies: config_vec[0].to_string()
     }
 }
 
-fn submit(answer: &str, part: &str) -> bool {
+fn submit(answer: &str, part: &str, ctx: &Ctx) -> bool {
 
-    let answer_string = answer.to_string();
+    let params = [("level", part), ("answer", answer)];
 
-    let body = json!({
-        "level": "1",
-        "answer": answer_string
-    });
+    let client = reqwest::blocking::Client::new();
+    let res_result = client.post(format!("https://adventofcode.com/{}/day/{}/answer", ctx.year, ctx.day))
+        .header(COOKIE, &ctx.cookies)
+        .form(&params)
+        .send();
 
+    let res = match res_result {
+        Ok(res) => res.text(),
+        Err(_) => {
+            warning!("Failed to submit part {} answer.", part);
+            return false;
+        }
+    };
 
-
-    return true;
+    if res.contains("not the right answer") {
+        return false;
+    } else {
+        return true;
+    }
 }
 
-fn run(year: i32, day: i32) {
+fn run(ctx: Ctx) {
     info!("Running python code.");
 
     let cwd_result = set_current_dir("Z:\\Code\\python\\advent of code");
@@ -59,7 +76,7 @@ fn run(year: i32, day: i32) {
     let now = SystemTime::now();
 
     let raw_output = Command::new("python3")
-        .arg(format!(".\\{}\\{}\\main.py", year, day))
+        .arg(format!(".\\{}\\{}\\main.py", ctx.year, ctx.day))
         .output()
         .expect("Failed to run solution.");
 
@@ -107,17 +124,26 @@ fn run(year: i32, day: i32) {
 
     info!("Submitting to advent of code.\n");
 
-    let part1_result = submit(output[0], "1");
+    let part1_result = submit(output[0], "1", &ctx);
+    let part2_result;
+    if output[1] != "N/A" {
+        part2_result = submit(output[1], "2", &ctx)
+    } else {
+        part2_result = false;
+    }
 
+    let part1_string = if part1_result == true {"\u{001b}[102mPart 1 SUCCESS\u{001b}[0m"} else {"\u{001b}[41mFAILURE\u{001b}[0m"};
+    let part2_string = if part2_result == true {"\u{001b}[102mPart 2 SUCCESS\u{001b}[0m"} else {if output[1] == "N/A" {"N/A"} else {"\u{001b}[41mPart 2 FAILURE\u{001b}[0m"}};
     println!("-------------------- Results ---------------");
-
+    println!("{}", part1_string);
+    println!("{}", part2_string);
     println!("---------------------------------------------");
 }
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-
-    let ctx = load_config();
+    info!("Loading config.");
+    let config: Config = load_config();
 
     // validate the args
     if args.len() != 3 { // the command itself is part of the args array
@@ -156,5 +182,12 @@ fn main() {
         return;
     }
     info!("Validated year and day.");
-    run(year, day);
+
+    let ctx = Ctx {
+        cookies: config.cookies,
+        year: year.to_string(),
+        day: day.to_string()
+    };
+
+    run(ctx);
 }
