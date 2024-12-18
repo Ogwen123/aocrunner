@@ -47,7 +47,7 @@ fn submit(answer: &str, part: &str, ctx: &Ctx) -> bool {
         .send();
 
     let res = match res_result {
-        Ok(res) => res.text(),
+        Ok(res) => res.text().unwrap(),
         Err(_) => {
             warning!("Failed to submit part {} answer.", part);
             return false;
