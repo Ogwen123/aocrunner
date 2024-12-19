@@ -23,6 +23,14 @@ struct Ctx {
     day: String
 }
 
+#[derive(PartialEq)]
+enum ResultType {
+    Success,
+    Failure,
+    Cooldown,
+    AlreadySubmitted
+}
+
 fn load_config() -> Config {
     let path = dirs::desktop_dir().expect("Could not find desktop folder.");
 
@@ -36,7 +44,21 @@ fn load_config() -> Config {
     }
 }
 
-fn submit(answer: &str, part: &str, ctx: &Ctx) -> bool {
+fn result_type_to_message(res_type: ResultType, part: &str) -> String {
+    if res_type == ResultType::Success {
+        return format!("\u{001b}[102mPart {} SUCCESS\u{001b}[0m", part)
+    } else if res_type == ResultType::Failure {
+        return format!("\u{001b}[41mPart {} FAILURE\u{001b}[0m", part)
+    } else if res_type == ResultType::AlreadySubmitted {
+        return format!("\u{001b}[44mPart {} ALREADY SUBMITTED\u{001b}[0m", part)
+    } else if res_type == ResultType::Cooldown {
+        return format!("\u{001b}[43mPart {} ON COOLDOWN\u{001b}[0m", part)
+    } else {
+        return "".to_string()
+    }
+}
+
+fn submit(answer: &str, part: &str, ctx: &Ctx) -> ResultType {
 
     let params = [("level", part), ("answer", answer)];
 
@@ -50,14 +72,18 @@ fn submit(answer: &str, part: &str, ctx: &Ctx) -> bool {
         Ok(res) => res.text().unwrap(),
         Err(_) => {
             warning!("Failed to submit part {} answer.", part);
-            return false;
+            return ResultType::Failure;
         }
     };
 
     if res.contains("not the right answer") {
-        return false;
+        return ResultType::Failure;
+    } else if res.contains("left to wait") {
+        return ResultType::Cooldown
+    } else if res.contains("you already complete") {
+        return ResultType::AlreadySubmitted
     } else {
-        return true;
+        return ResultType::Success
     }
 }
 
@@ -129,11 +155,11 @@ fn run(ctx: Ctx) {
     if output[1] != "N/A" {
         part2_result = submit(output[1], "2", &ctx)
     } else {
-        part2_result = false;
+        part2_result = ResultType::Failure;
     }
 
-    let part1_string = if part1_result == true {"\u{001b}[102mPart 1 SUCCESS\u{001b}[0m"} else {"\u{001b}[41mFAILURE\u{001b}[0m"};
-    let part2_string = if part2_result == true {"\u{001b}[102mPart 2 SUCCESS\u{001b}[0m"} else {if output[1] == "N/A" {"N/A"} else {"\u{001b}[41mPart 2 FAILURE\u{001b}[0m"}};
+    let part1_string = result_type_to_message(part1_result, "1");
+    let part2_string = if output[1] == "N/A" {"N/A".to_string()} else { result_type_to_message(part2_result, "2") };
     println!("-------------------- Results ---------------");
     println!("{}", part1_string);
     println!("{}", part2_string);
