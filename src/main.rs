@@ -1,21 +1,17 @@
 mod utils;
 
-use crate::utils::logger::{fatal, info, warning};
+use crate::utils::logger::{fatal, info, success, warning};
+use crate::utils::config::{Config, load_config, write_config};
 use std::env;
 use std::env::set_current_dir;
-use std::process::Command;
+use std::process::{Stdio, Command};
 use std::str::FromStr;
 use std::time::{SystemTime};
 use reqwest;
 use reqwest::header::COOKIE;
-use dirs;
-use std::fs;
+use crate::utils::setup::setup;
 
 type ParseResult = Result<i32, <i32 as FromStr>::Err>;
-
-struct Config {
-    cookies: String
-}
 
 struct Ctx {
     cookies: String,
@@ -31,22 +27,9 @@ enum ResultType {
     AlreadySubmitted
 }
 
-fn load_config() -> Config {
-    let path = dirs::desktop_dir().expect("Could not find desktop folder.");
-
-    let config = fs::read_to_string(format!("{}\\aocrunner.txt", path.into_os_string().into_string().unwrap()))
-        .expect("Could not read the config file. Make sure there is a file called aocrunner.txt on your desktop.");
-
-    let config_vec: Vec<&str> = config.split("\n").collect();
-
-    return Config {
-        cookies: config_vec[0].to_string()
-    }
-}
-
 fn result_type_to_message(res_type: ResultType, part: &str) -> String {
     if res_type == ResultType::Success {
-        return format!("\u{001b}[102mPart {} SUCCESS\u{001b}[0m", part)
+        format!("\u{001b}[102mPart {} SUCCESS\u{001b}[0m", part)
     } else if res_type == ResultType::Failure {
         return format!("\u{001b}[41mPart {} FAILURE\u{001b}[0m", part)
     } else if res_type == ResultType::AlreadySubmitted {
@@ -75,15 +58,16 @@ fn submit(answer: &str, part: &str, ctx: &Ctx) -> ResultType {
             return ResultType::Failure;
         }
     };
+    println!("{}", res);
 
     if res.contains("not the right answer") {
-        return ResultType::Failure;
+        ResultType::Failure
     } else if res.contains("left to wait") {
-        return ResultType::Cooldown
+        ResultType::Cooldown
     } else if res.contains("you already complete") {
-        return ResultType::AlreadySubmitted
+        ResultType::AlreadySubmitted
     } else {
-        return ResultType::Success
+        ResultType::Success
     }
 }
 
@@ -101,8 +85,10 @@ fn run(ctx: Ctx) {
 
     let now = SystemTime::now();
 
-    let raw_output = Command::new("python3")
+    let raw_output = Command::new("python")
         .arg(format!(".\\{}\\{}\\main.py", ctx.year, ctx.day))
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .output()
         .expect("Failed to run solution.");
 
@@ -113,7 +99,7 @@ fn run(ctx: Ctx) {
             0
         }
     };
-
+    println!("{:?}", raw_output);
     let output_format_result = String::from_utf8(raw_output.stdout);
 
     let output_str = match output_format_result {
@@ -166,14 +152,19 @@ fn run(ctx: Ctx) {
     println!("--------------------------------------------");
 }
 
-fn main() {
-    let args: Vec<String> = env::args().collect();
+fn pre_run(args: Vec<String>) {
     info!("Loading config.");
-    let config: Config = load_config();
+    let config: Config = match load_config() {
+        Ok(res) => res,
+        Err(e) => {
+            fatal!("{}", e);
+            return;
+        }
+    };
 
     // validate the args
     if args.len() != 3 { // the command itself is part of the args array
-        fatal!("You should provide the year and the day as inputs.");
+        fatal!("You should provide the year and the day as inputs. 'aocrunner <day> <year> <optional: rust|python>");
         return;
     }
 
@@ -216,4 +207,40 @@ fn main() {
     };
 
     run(ctx);
+}
+
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    if args.len() == 2 {
+        if args[1] == "setup" {
+            setup();
+            return
+        } else {
+            fatal!("Invalid args.");
+        }
+    } else if args.len() == 3 {
+        if args[1] == "cookie" {
+            let mut old_config = match load_config() {
+                Ok(res) => res,
+                Err(e) => {
+                    fatal!("{}", e);
+                    return;
+                }
+            };
+            
+            old_config.cookies = args[2].clone();
+            
+            match write_config(old_config) {
+                Ok(_) => success!("Updated cookie"),
+                Err(e) => {
+                    fatal!("{}", e);
+                    return;
+                }
+            }
+        } else {
+            pre_run(args)
+        }
+    }
+
+
 }

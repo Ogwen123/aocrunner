@@ -3,7 +3,7 @@ macro_rules! success {
         $crate::print!("\n")
     };
     ($($arg:tt)*) => {{
-        println!("\x1b[32m[SUCCESS]\x1b[0m {}", format!($($arg)*));
+        println!("[{}]\x1b[32m[SUCCESS]\x1b[0m {}", chrono::prelude::DateTime::<chrono::prelude::Utc>::from(SystemTime::now()).format("%H:%M:%S%.3f"), format!($($arg)*));
     }};
 }
 
@@ -22,7 +22,7 @@ macro_rules! warning {
         $crate::print!("\n")
     };
     ($($arg:tt)*) => {{
-        println!("\x1b[33m[WARNING]\x1b[0m {}", format!($($arg)*));
+        println!("[{}]\x1b[33m[WARNING]\x1b[0m {}", chrono::prelude::DateTime::<chrono::prelude::Utc>::from(SystemTime::now()).format("%H:%M:%S%.3f"), format!($($arg)*));
     }};
 }
 
@@ -31,7 +31,7 @@ macro_rules! fatal {
         $crate::print!("\n")
     };
     ($($arg:tt)*) => {{
-        println!("\x1b[31m\x1b[1m[FATAL] {}\x1b[0m ", format!($($arg)*));
+        println!("[{}]\x1b[31m\x1b[1m[FATAL] {}\x1b[0m ", chrono::prelude::DateTime::<chrono::prelude::Utc>::from(SystemTime::now()).format("%H:%M:%S%.3f"), format!($($arg)*));
     }};
 }
 
