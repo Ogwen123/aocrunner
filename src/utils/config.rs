@@ -1,5 +1,6 @@
 use std::fs;
 use std::env::home_dir;
+use std::fmt::{Display, Formatter};
 use std::fs::{create_dir_all, OpenOptions};
 use std::io::Write;
 use std::path::PathBuf;
@@ -22,6 +23,12 @@ impl Default for Config {
     }
 }
 
+impl Display for Config {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Got config \n    \x1b[32mcookies\x1b[0m={}\n    \x1b[32mpython_path\x1b[0m={}\n    \x1b[32mrust_path\x1b[0m={}\n    \x1b[32mdefault\x1b[0m={}", self.cookies, self.python_path, self.rust_path, self.default)
+    }
+}
+
 pub fn config_directory() -> Result<PathBuf, String> {
     let mut home = match home_dir() {
         Some(res) => res,
@@ -41,7 +48,7 @@ pub fn config_directory() -> Result<PathBuf, String> {
     } else {
         return Err(String::from("Unsupported OS"))
     }
-    println!("{:?}", home);
+
     Ok(home)
 }
 

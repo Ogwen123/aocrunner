@@ -38,6 +38,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "dirs",
+ "log",
  "reqwest",
  "serde_json",
  "text_io",
