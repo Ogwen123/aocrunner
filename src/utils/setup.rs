@@ -3,19 +3,6 @@ use std::io::Write;
 use crate::utils::config::{write_config, Config};
 
 pub fn setup() {
-    match write_config(Config {
-        cookies: String::from("session=53616c7465645f5fba405ab4c87a8198672987e010428dcf293962e5caa0ef1c9fdfa102111101bc1c14ca12239d5b159a962e60be1562905658b022b8aff3f6"),
-        python_path: String::from("Z:\\Code\\python\\advent of code"),
-        rust_path: String::from("Z:\\Code\\rust\\advent of code"),
-        default: String::from("python")
-    }) {
-        Ok(_) => {},
-        Err(e) => {
-            println!("{}", e);
-            return
-        }
-    }
-    return;
     let mut config: Config = Default::default();
 
     println!("To find you cookie navigate to any puzzle page -> Press F12 -> Network Tab -> F5 to reload -> click the first request -> scroll to request headers -> copy the value for Cookie.");
