@@ -86,7 +86,7 @@ fn run(args: Vec<String>, lang_provided: bool) {
             return;
         }
     };
-    println!("{}", config);
+    //println!("{}", config);
 
     // make sure the 2 provided args are valid e.g. year - 20** and day is between 1 and 25 inclusive
     let year_result: ParseResult = args[1].parse();
@@ -228,6 +228,6 @@ fn main() {
     } else if args.len() == 4 {
         run(args, true);
     } else {
-        fatal!("You provided too many inputs.Command syntax: 'aocrunner <day> <year> <optional: rust|python>")
+        fatal!("You provided too many inputs.Command syntax: 'aocrunner <year> <day> <optional: rust|python>")
     }
 }

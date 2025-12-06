@@ -19,6 +19,12 @@ pub fn run_rust(config: Config, ctx: &Ctx) -> Result<RunResult, String> {
 
     let mut now = Instant::now();
 
+    let sep = match std::env::consts::OS {
+        "windows" => "\\",
+        _ => "/"
+    };
+    let path = format!(".{sep}{}{sep}{}{sep}main.rs", ctx.year, ctx.day);
+    
     let build_output = Command::new("rustc")
         .arg(format!("./{}/{}/main.rs", ctx.year, ctx.day))
         .arg("--out-dir")

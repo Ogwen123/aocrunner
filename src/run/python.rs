@@ -18,8 +18,14 @@ pub fn run_python(config: Config, ctx: &Ctx) -> Result<RunResult, String> {
 
     let now = SystemTime::now();
 
+    let sep = match std::env::consts::OS {
+        "windows" => "\\",
+        _ => "/"
+    };
+
+    let path = format!(".{sep}{}{sep}{}{sep}main.py", ctx.year, ctx.day);
     let raw_output = Command::new("python")
-        .arg(format!(".\\{}\\{}\\main.py", ctx.year, ctx.day))
+        .arg(path.clone())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .output()
@@ -55,7 +61,7 @@ pub fn run_python(config: Config, ctx: &Ctx) -> Result<RunResult, String> {
     }
 
     if output.len() != 1 && output.len() != 2 {
-        return Err(String::from("Incorrect output format. Make sure your output is 1 or 2 number on separate lines."))
+        return Err(format!("Incorrect output format. Make sure your output is 1 or 2 number on separate lines.\nPath: {}\nOutput: \n{}", path, output_str))
     }
 
     if output.len() == 1 {
